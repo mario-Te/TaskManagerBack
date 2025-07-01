@@ -11,6 +11,7 @@ const jwtAuthMiddleware = (req, res, next) => {
   //   return res.status(401).json({ error: "unauthorized" });
   // }
   // Check if cookies exist
+  console.log(req);
   if (!req.cookies || !req.cookies.token) {
     return res.status(401).json({ error: "Unauthorized: Token not found" });
   }
