@@ -11,7 +11,7 @@ require("dotenv").config();
 // MIDDLEWARES
 app.use(
   cors({
-    origin: "http://localhost:5000",
+    origin: "https://task-manager-front-delta.vercel.app",
     credentials: true,
   })
 );
