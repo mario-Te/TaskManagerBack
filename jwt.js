@@ -1,42 +1,50 @@
 const jwt = require("jsonwebtoken");
-////////////////////////////////////////////////////////
+require("dotenv").config();
+
+// Middleware to authenticate JWT tokens from cookies or Authorization header
 const jwtAuthMiddleware = (req, res, next) => {
-  // const authorization = req.headers.authorization
-  // if (!authorization) {
-  //   return res.status(401).json({error:"token not found"})
-  // }
-  // extract the jwt token
-  // const token = req.headers.authorization.split(" ")[1];
-  // if (!token) {
-  //   return res.status(401).json({ error: "unauthorized" });
-  // }
-  // Check if cookies exist
-  console.log(req);
-  if (!req.cookies || !req.cookies.token) {
-    return res.status(401).json({ error: "Unauthorized: Token not found" });
-  }
-  const token = req.cookies.token;
+  // Try to get token from:
+  // 1. Cookies (for browser-based requests)
+  // 2. Authorization header (for API clients)
+  const token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
+
   if (!token) {
-    return res.status(401).json({ error: "Unauthorized: token not found" });
+    return res.status(401).json({
+      success: false,
+      error: "Access denied. No token provided.",
+    });
   }
+
   try {
-    // verify jwt token
-    const decodedValue = jwt.verify(token, process.env.JWT_SECRET);
-    req.userPayload = decodedValue;
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded; // Attach decoded user data to request
     next();
-  } catch (error) {
-    res.status(500).json({
-      error: "Invalid token",
-      details: error.message,
+  } catch (err) {
+    return res.status(401).json({
+      success: false,
+      error: "Invalid or expired token",
+      details: err.message,
     });
   }
 };
-///////////////////////////////////////////////////////
-// function to generate JWT Token
-const generateToken = (userData) => {
-  // generate a new JWT token using user data
-  return jwt.sign(userData, process.env.JWT_SECRET);
-};
-module.exports = { jwtAuthMiddleware, generateToken };
 
-// eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY2YTkyM2E5MWRhMzRjNjUyMGQyMjE0NyIsInVzZXJuYW1lIjoiYyIsImlhdCI6MTcyMjM2MDc0NX0.UExAa7VtF4qX22Mxso5tHLL2AEaq2dmLdt7uxUhsULc
+// Generate a JWT token with optional expiration
+const generateToken = (userData, expiresIn = "1d") => {
+  return jwt.sign(userData, process.env.JWT_SECRET, { expiresIn });
+};
+
+// Clear JWT cookie (for logout)
+const clearTokenCookie = (res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+  });
+};
+
+module.exports = {
+  jwtAuthMiddleware,
+  generateToken,
+  clearTokenCookie,
+};
