@@ -52,7 +52,12 @@ app.use("/user", userRoutes);
 app.use("/notification", userRoutes);
 // Create HTTP server
 const server = http.createServer(app);
-io.attach(server, { cors: { origin: "*" } });
+io.attach(server, {
+  cors: {
+    origin: "https://task-manager-front-delta.vercel.app",
+    credentials: true,
+  },
+});
 io.origin = "*";
 /////////////////////////////////////////////////////////////
 server.listen(PORT, () => {
