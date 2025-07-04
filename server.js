@@ -11,14 +11,13 @@ require("dotenv").config();
 // MIDDLEWARES
 app.use(
   cors({
-    origin: "https://task-manager-front-delta.vercel.app",
+    origin: "http://localhost:5000",
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], // Added PATCH
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 app.use(cookieParser());
-app.use(bodyParser.json());
 
 // CONFIGURATIONS
 const PORT = process.env.PORT || 3000;
@@ -26,13 +25,7 @@ const PASSWORD = process.env.PASSWORD;
 
 // DATABASE CONNECTION
 // Construct MongoDB URI from env variables
-const mongoDbPath = `mongodb+srv://${
-  process.env.MONGO_DB_USERNAME
-}:${encodeURIComponent(process.env.MONGO_DB_PASSWORD)}@${
-  process.env.MONGO_DB_HOST
-}/${
-  process.env.MONGO_DB_NAME
-}?retryWrites=true&w=majority&appName=MongoCluster`;
+const mongoDbPath = "mongodb://localhost:27017/task_manager";
 mongoose.Promise = global.Promise;
 mongoose
   .connect(mongoDbPath, {
@@ -42,19 +35,20 @@ mongoose
   .then(() => {
     console.log("Mongoose Connected: Success  on " + mongoDbPath);
   });
-
+app.use(express.json());
 // ROUTES
 const taskRoutes = require("./routes/TaskRoutes");
 const userRoutes = require("./routes/userRoutes");
-
+const teamRoutes = require("./routes/teamRoutes");
 app.use("/task", taskRoutes);
 app.use("/user", userRoutes);
 app.use("/notification", userRoutes);
+app.use("/teams", teamRoutes);
 // Create HTTP server
 const server = http.createServer(app);
 io.attach(server, {
   cors: {
-    origin: "https://task-manager-front-delta.vercel.app",
+    origin: "http://localhost:5000",
     credentials: true,
   },
 });

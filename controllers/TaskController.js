@@ -5,7 +5,7 @@ const { Socket, socketEvents } = require("../notifications");
 // GET FUNCTIONS
 exports.getAllTasks = async (req, res) => {
   try {
-    const userId = req.userPayload.id;
+    const userId = req.user.id;
     const data = await Task.find({ userId });
     res.status(200).json(data);
   } catch (err) {
@@ -16,29 +16,12 @@ exports.getAllTasks = async (req, res) => {
   }
 };
 
-exports.getTaskById = async (req, res) => {
-  try {
-    const taskId = req.params.id;
-    const task = await Task.findById(taskId);
-    if (!task) {
-      return res.status(404).json({ error: "Task not found" });
-    }
-    res.status(200).json(task);
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      error: "Interval server error",
-      details: error.message,
-    });
-  }
-};
-
 // POST FUNCTIONS
 exports.createTask = async (req, res) => {
   try {
     const { title, description, status, priority, assignedTo } = req.body;
 
-    const userId = assignedTo ? assignedTo : req.userPayload.id;
+    const userId = assignedTo ? assignedTo : req.user.id;
     // create new task
     const newTask = new Task({
       userId,
@@ -62,10 +45,9 @@ exports.createTask = async (req, res) => {
     });
   }
 };
-// PUT FUNCTIONS
-exports.unSeenTask = async (req, res) => {
+exports.getUnseenTasks = async (req, res) => {
   try {
-    const userId = req.userPayload.id;
+    const userId = req.user.id;
     const data = await Task.find({ userId, seen: false });
     res.status(200).json(data);
   } catch (err) {
@@ -75,11 +57,38 @@ exports.unSeenTask = async (req, res) => {
       .json({ error: "Internal server error", details: err.message });
   }
 };
+// PUT FUNCTIONS
+exports.seeTask = async (req, res) => {
+  try {
+    console.log("Seening");
+    const taskId = req.body.notificationId;
+    const userId = req.user.id;
+
+    const response = await Task.findOneAndUpdate(
+      { _id: taskId, userId },
+      { seen: true },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+    if (!response) {
+      return res.status(404).json({ error: "task not found" });
+    }
+    res.status(200).json(response);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      error: "An error occurred",
+      details: error.message,
+    });
+  }
+};
 exports.updateTask = async (req, res) => {
   try {
     const taskId = req.params.id;
     const updatedTaskData = req.body;
-    const userId = req.userPayload.id;
+    const userId = req.user.id;
 
     const response = await Task.findOneAndUpdate(
       { _id: taskId, userId },
@@ -106,7 +115,7 @@ exports.deleteTask = async (req, res) => {
   try {
     const taskId = req.params.id;
 
-    const userId = req.userPayload.id;
+    const userId = req.user.id;
 
     const response = await Task.findOneAndDelete({ _id: taskId, userId });
     if (!response) {
